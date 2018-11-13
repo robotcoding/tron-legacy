@@ -43,6 +43,8 @@ class StudentBot:
         ptm = state.ptm
         loc = locs[ptm]
         actions = list(asp.get_safe_actions(state.board, loc))
+        if len(actions) == 0:
+            return "U"
         next_states = [asp.transition(state, a) for a in actions]
         voronois = [self.voronoi_boi(s) for s in next_states]
         dists = [voronois[i][ptm] for i in range(len(voronois))]
