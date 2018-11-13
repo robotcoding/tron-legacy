@@ -1,0 +1,235 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{varwidth}
+\usepackage{hyperref}
+
+\setlength{\parindent}{0pt}
+\title{CS 1410 Final Project: TRON-41}
+
+\date{Due: Monday December 10}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+   In this project, you will create a bot to play TRON-41, a modified version of the game TRON.
+
+\section{The Game}
+    \subsection{The Basics}
+    TRON-41 is a two-player game played on a rectangular grid, in which players take turns moving in one of four directions (Up, Down, Left, and Right) and leave behind an impenetrable \textbf{barrier} in the position where they were. ~\\
+
+    A player loses by colliding with a barrier or one of the innate walls of the board.
+    Below are two example game boards on the next page for your reference.
+    The one on the left is the start of a game, and the one on the right is the same game board after each player has moved once. ~\\
+
+    \begin{centering}
+    \begin{verbatim}
+          ###############               ###############
+          #1            #               #x            #
+          #             #               #1            #
+          #       *     #               #       *     #
+          #             #               #             #
+          #    @     ^  #               #    @     ^  #
+          #             #               #             #
+          #        !    #               #        !   2#
+          #            2#               #            x#
+          ###############               ###############
+    \end{verbatim}
+    \end{centering}
+
+    The numbers 1 and 2 denote the current locations of players 1 and 2, respectively; the \verb|#| symbols denote permanent walls; the \verb|*|, \verb|@|, \verb|^|, and \verb|!| symbols represent powerups; and the \verb|x| symbols represent the barriers that either player has left behind.
+
+
+    \subsection{Powerups}
+    A player obtains a powerup automatically by stepping on it. There are four different types of powerups:
+    \begin{enumerate}
+    	\item Trap: Represented by \texttt{*} on the map.
+        \item Armor: Represented by \texttt{@} on the map.
+        \item Speed: Represented by \texttt{\^} on the map.
+        \item Bomb: Represented by \texttt{!} on the map.
+    \end{enumerate}
+
+    \subsubsection{Trap}
+    Trap powerups place up to 3 (as many as can fit) barriers on the border of the 5x5 square surrounding the opposing player.
+    The x's in the figure below denote the locations at which barriers can be placed if player 2 just stepped on a trap powerup.
+    The locations of the barriers on this square are selected uniformly at random.
+
+    \begin{verbatim}
+                          ###############
+                          #             #
+                          #   xxxxx     #
+                          #   x   x     #
+                          #   x 1 x     #
+                          #   x   x     #
+                          #   xxxxx     #
+                          #             #
+                          #           2 #
+                          ###############
+    \end{verbatim}
+
+    \subsubsection{Armor}
+    Armor powerups allow the player to travel through one barrier. When a player obtains an armor powerup, they will be allowed to use it any time afterward. It is used automatically once the player travels through a barrier. Note that the armor powerup only allows users to travel through \textit{barriers} (represented on the map by \texttt{x}), not permanent walls (\texttt{\#}) or other players (\texttt{1,2}).
+
+    \subsubsection{Speed}
+    Speed powerups allow the player to take 4 consecutive turns (as if they got a speed boost). This is mandatory and the player cannot choose to skip the extra turns.
+
+    \subsubsection{Bomb}
+    Bomb powerups destroy all the barriers (\texttt{x}) in the 9x9 square surrounding the bomb, replacing them with open space. They are activated immediately upon a player stepping on them. The \texttt{x}'s in the figure below denote the locations where barriers would be destroyed if the bomb in the center was activated.
+
+    \begin{verbatim}
+                          #################
+                          #               #
+                          #  xxxxxxxxx    #
+                          #  xxxxxxxxx    #
+                          #  xxxxxxxxx    #
+                          #  xxxxxxxxx    #
+                          #  xxxx!xxxx    #
+                          #  xxxxxxxxx    #
+                          #  xxxxxxxxx    #
+                          #  xxxxxxxxx    #
+                          #  xxxxxxxxx    #
+                          #               #
+                          #               #
+                          #               #
+                          #################
+
+    \end{verbatim}
+
+    \subsection{Time Limit}
+    Each player must make their decision \textbf{within 0.3 seconds.}
+    If a player takes too long, they are forced to move Up. Furthermore, bots are not allowed to use multithreading.
+
+    \subsection{Run an Example Game}
+    A good way to learn how the game works is to run an example game.
+    Running \verb|gamerunner.py| (without any command-line arguments) will initiate a game between two bots who choose their actions randomly and print the stream of board positions in your terminal.
+
+
+\section{Code}
+    \subsection{Code to modify}
+    \begin{itemize}
+        \item \texttt{bots.py} contains a stencil for the \texttt{StudentBot} class, where you should fill out the \texttt{decide()} and \texttt{cleanup()} functions.
+        This module also contains code for bots against which you can test your \texttt{StudentBot}. You can also write new Bot classes in case you want to compare multiple strategies.
+        \\ \\
+        We highly recommend you read through the code for the bots we have already implemented and try to understand it. This code will help you get used to the different variables and methods of the \texttt{TronProblem} and \texttt{TronState} classes that your bot can use.
+
+        \item \texttt{support.py} contains a function \texttt{determine\_bot\_functions()} to which you can add clauses that correspond to new bots you write in \texttt{bots.py}.
+        It is only necessary to do this if you create a bot besides \texttt{StudentBot} for the purpose of testing \texttt{StudentBot}.
+    \end{itemize}
+    \subsection{Necessary Source Code}
+    \begin{itemize}
+        \item \texttt{tronproblem.py} contains code that defines the \texttt{TronProblem} and \texttt{TronState} classes.
+
+        The function defined in this module that we expect to be the most useful is the static method \texttt{get\_safe\_actions(board, loc)}, which returns the set of actions one can take from the position \texttt{loc} (a tuple) that do not result in a collision. It will also be useful to familiarize yourself with the different instance variables of the \texttt{TronState} class. You can see \texttt{bots.py} for some examples of bots accessing these variables.
+
+        \item \texttt{gamerunner.py} contains the code that actually runs the game. You may want to read this code to figure out how the code will behave when different command line arguments are set.
+
+        \item \texttt{trontypes.py} contains constants that are used to identify cells on the board and types of powerups. These are used throughout \texttt{tronproblem.py} and \texttt{gamerunner.py} and may be helpful to use when writing your bots.
+
+        \item \texttt{boardprinter.py} contains the code that handles printing the board and game information to the terminal. It is unlikely that you will need to look through this code.
+
+        \item \texttt{adversarialsearchproblem.py} is identical to the file we distributed for the Adversarial Search assignment. The \texttt{TronProblem} class inherits from the \texttt{AdversarialSearchProblem} class. You should not need to use this file at all.
+
+    \end{itemize}
+    \subsection{Testing Your Solution}
+    You can run your code using the \texttt{main()} function of \texttt{gamerunner.py}. This function uses a few command line arguments, the most important of which we'll describe here:
+    \begin{itemize}
+        \item \texttt{-bots} lets you specify which bots will play against each other. The syntax is \texttt{-bots <bot1> <bot2>}
+        \item \texttt{-maps} lets you change the map that the game is played on. The syntax is \texttt{-maps <path to map>}
+        \item \texttt{-multi\_test} lets you run the same kind of game multiple times. You may want to use this with the \texttt{-no\_image} flag so the games go more quickly. This would look like \texttt{-multi\_test <number of games> -no\_image}.
+        \item \texttt{-no\_color} runs the game without coloring the board printout. Use this option if the coloring causes display issues.
+    \end{itemize}
+    For example, you can test your \texttt{StudentBot} against \texttt{WallBot} on the joust map with \\
+
+    \texttt{python gamerunner.py -bots student wall -map maps/joust.txt} \\
+
+    You can test your \texttt{StudentBot} against \texttt{TABot1} 15 times with no visualizer on the empty\_room map with\\
+
+    \texttt{python gamerunner.py -bots student ta1 -map
+    maps/empty\_room.txt -multi\_test 15 -no\_image}
+
+    \subsubsection{Map files}
+    Maps are stored in \texttt{.txt} files. They store the maps using the same characters that appear in the board printout. The only exception is the \texttt{?} character that appears in the files, which represent random powerups. When \texttt{gamerunner.py} reads in the map files, one of the four powerups is randomly chosen to replace each \texttt{?} character.
+
+\section{Writeup}
+You and your partner should collectively turn in a writeup containing the following information in clearly labeled sections:
+
+\begin{itemize}
+\item A full description of how your bot works. Your description should enable its reader to replicate your bot.
+
+\item Brief descriptions of the motivations behind each of the important decisions you made about how your bot works.
+
+\item A description of any known shortcomings of your bot, and specifically how you would attempt to improve upon them if you had more time. Answering this question is not necessary but will reduce the number of points lost from shortcomings that we notice.
+\end{itemize}
+
+\section{Tournament}
+We will be runninng a daily tournament so you can compete with other students in the course.
+Details about how to submit your bot to this will be posted shortly.
+This is not required but strongly encouraged - the winner may even get a prize!
+
+\section{Evaluating Your Bot}
+Your bot will play many matches against 4 different opponents on 4 different maps.
+Your bot will move first in exactly half of the matches.
+
+\subsection{Opponents}
+\begin{enumerate}
+    \item RandBot - always chooses uniformly at random among the actions that do not immediately lead to a loss.
+
+    \item WallBot - hugs walls and barriers to use space efficiently
+
+    \item TABot1 and TABot2 - TA bots with secret implementations
+\end{enumerate}
+You can find the code for RandBot and WallBot in \verb|bots.py|. The implementation of the TA bots is in \verb|ta_bots.so| as a compiled module so that their source code is not exposed. You can still test your bot against them by using \texttt{ta1} or \texttt{ta2} as options for the \texttt{-bots} flag when running \texttt{gamerunner.py}.
+
+\subsection{Maps}
+You can find 3 of the maps, \verb|divider|, \verb|hunger_games|, and \verb|joust|, in the maps directory.
+The fourth map in that directory, \verb|empty_room|, is available for your testing but will not be used when grading.
+The fourth grading map is withheld.
+
+\subsection{Expectations}
+To get a good score, your bot should be able to defeat RandBot virtually all of the time, WallBot virtually all of the time on most maps, and each TABot most of the time.
+
+\section{Advice}
+Here are some ideas and things to consider to get you started:
+
+\begin{itemize}
+\item It will be difficult to have a single decision-making function that works in all situations and never takes too long.
+As such, you may consider having multiple decision-making functions and switching between them based on easily determinable characteristics of the game state.
+For example, you may have a bot that uses a completely different decision-making function if there are no more powerups on the grid.
+
+\item You may want to consider either learning or imposing an evaluation function that maps game states to real numbers that indicate how good a game state is for your bot.
+
+\item The value of a powerup depends on the game state.
+Your bot may want to take this into account.
+
+\item As you iteratively improve your bot, it will be useful to keep past versions of it to use for testing your most recent bot.
+Additionally, you are permitted to test your bot against the bots of other students in the course, as long as you do not copy each other's code.
+\end{itemize}
+
+\section{Partners}
+We \textit{strongly} encourage you to work on this project with a partner; this is a great opportunity for you to learn from each other!
+Students from past years have strongly recommended teaming up as well.
+You may choose your partner or find one using the Piazza ``find teammates" post.
+Once you have a partner, you must fill out \href{https://goo.gl/forms/Iw28IP74KXJV6Bcn2}{\underline{this form}} before you submit.
+If you're having trouble finding a partner, email \verb|cs1410headtas@lists.brown.edu| as early as possible.
+
+\section{A Note About TA Hours}
+
+The final project is open-ended; there are many good solutions, and it's not obvious what will work and what will not.
+As such, you should not come to TA hours expecting definitive, ``Yes, this will work" or ``No, maybe try this instead" kinds of answers.
+Instead, you should view TA hours for this project as an opportunity to talk about your ideas and get a second opinion and also to review past material in the course.
+Don't forget to use your partner and classmates as resources as well!
+
+\section{Install and Handin}
+
+\textbf{To install:} \verb|cs1410_install Tron| ~\\
+
+\textbf{To hand in your code:} \verb|cs1410_handin Tron| ~\\
+
+Handin your writeup normally through Gradescope.
+\textbf{Only one code and writeup submission per group, please!}
+Additionally, please note that since this is a final project, the normal resubmission policy does not apply and you may not use any late days.
+December 10 is the hard deadline for all parts of the project.
+
+
+\end{document}
