@@ -11,6 +11,25 @@ import random, math
 class StudentBot:
     """ Write your student bot here"""
 
+    def voronoi_boi(self, state):
+        board_partitions = [0 for i in range(3)]
+        for i in range(len(state.board)):
+            for j in range(len(state.board[0])):
+                # Skip over permanent and temporary barriers
+                if state.board[i][j] == '#' or state.board[i][j] == 'x':
+                    continue
+
+                # Calculate each player's distance from (i, j)
+                one_dist = math.abs(i - state.player_locs[0][0]) + math.abs(j - state.player_locs[0][1])
+                two_dist = math.abs(i - state.player_locs[1][0]) + math.abs(j - state.player_locs[1][1])
+                if one_dist > two_dist: # If player one is closer
+                    board_partitions[0] += 1
+                else if one_dist < two_dist: # If player two is closer
+                    board_partitions[1] += 1
+                else: # If there's a tie
+                    board_partitions[2] += 1
+        return board_partitions
+
     def decide(self, asp):
         """
         Input: asp, a TronProblem
@@ -19,7 +38,19 @@ class StudentBot:
         To get started, you can get the current
         state by calling asp.get_start_state()
         """
-        return "U"
+        state = asp.get_start_state()
+        locs = state.player_locs
+        ptm = state.ptm
+        loc = locs[ptm]
+        actions = list(asp.get_safe_actions(board, loc))
+        next_states = [asp.transition(state, a) for a in actions]
+        voronois = [self.voronoi_boi(s) for s in next_states]
+        dists = [voronois[i][ptm] for i in range(len(voronois))]
+        max_index = float("-inf")
+        for j in range(len(dists)):
+            if dists[j] > dists[max_index]:
+                max_index = j
+        return actions[max_index]
 
     def cleanup(self):
         """
