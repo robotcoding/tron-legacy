@@ -30,6 +30,80 @@ class StudentBot:
                     board_partitions[2] += 1
         return board_partitions
 
+    def alpha_beta_cutoff(self, asp):
+        # Initialize the variables
+        state = asp.get_start_state()
+        me = state.player_to_move()
+        # No action can be taken from a terminal state
+        if asp.is_terminal_state(state):
+            return None
+        else:
+            # Use None in place of positive and negative infinity
+            return self.ab_cutoff_helper(asp, state, None, None, 0, me)[0]
+
+    def ab_cutoff_helper(self, asp, state, a, b, depth, me):
+        look_ahead_cutoff = 3
+        if asp.is_terminal_state(state):
+            # Return the value
+            if state.player_locs[me] == None:
+                return (None, -99999)
+            else:
+                return (None, 99999)
+        else:
+            # Recurse to find the node's value
+            locs = state.player_locs
+            ptm = state.ptm
+            loc = locs[ptm]
+            actions = list(asp.get_safe_actions(state.board, loc))
+            if len(actions) == 0:
+                if ptm == me:
+                    return ('U', -99999)
+                else:
+                    return ('U', 99999)
+            initialized = False
+            for action in actions:
+                # If this state is as deep as we can go
+                if depth == look_ahead_cutoff: # Note that this assumes that we're the ptm here
+                    # Evaluate it with our function
+                    board_partition = self.voronoi_boi(state)
+                    return (None, board_partition[me] - board_partition[1-me])
+                else:
+                    # Get the next state and find its value
+                    new_state = asp.transition(state, action)
+                    value = self.ab_cutoff_helper(asp, new_state, a, b, depth + 1, me)
+                    # If this is our first action
+                    if not initialized:
+                        # It is the best action
+                        best = (action, value[1])
+                        initialized = True
+                    if ptm == me:
+                        # Maximize and adjust alpha
+                        if value[1] > best[1]:
+                            best = (action, value[1])
+                        # If alpha is initialized
+                        if (not a == None):
+                            # Take the max
+                            a = max(a, value[1])
+                        else:
+                            # Otherwise just use the value
+                            a = value[1]
+                    else:
+                        # Minimize and adjust beta
+                        if value[1] < best[1]:
+                            best = (action, value[1])
+                        # If beta is initialized
+                        if (not b == None):
+                            # Take the min
+                            b = min(b, value[1])
+                        else:
+                            # Otherwise just use the value
+                            b = value[1]
+                    # Prune the tree
+                    if (not a == None) and (not b == None) and a >= b:
+                        break
+
+            return best
+
     def decide(self, asp):
         """
         Input: asp, a TronProblem
@@ -38,6 +112,8 @@ class StudentBot:
         To get started, you can get the current
         state by calling asp.get_start_state()
         """
+        return self.alpha_beta_cutoff(asp)
+        '''
         state = asp.get_start_state()
         locs = state.player_locs
         ptm = state.ptm
@@ -53,6 +129,7 @@ class StudentBot:
             if dists[j] > dists[max_index]:
                 max_index = j
         return actions[max_index]
+        '''
 
     def cleanup(self):
         """
