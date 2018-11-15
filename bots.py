@@ -11,23 +11,60 @@ import random, math
 class StudentBot:
     """ Write your student bot here"""
 
+    def divide_empty_territory(self, board):
+        spaces_to_comp = {}
+        comps = -1
+        for i in range(len(board) - 1):
+            for j in range(len(board[0]) - 1):
+                # Skip over permanent and temporary barriers
+                if board[i][j] == '#' or board[i][j] == 'x':
+                    continue
+
+                if not (i, j) in spaces_to_comp.keys():
+                    comps +=1
+                    spaces_to_comp[(i, j)] = comps
+
+                if not (board[i+1][j] == '#' or board[i+1][j] == 'x'):
+                    spaces_to_comp[(i+1, j)] = spaces_to_comp[(i, j)]
+
+                if not (board[i][j+1] == '#' or board[i][j+1] == 'x'):
+                    spaces_to_comp[(i, j+1)] = spaces_to_comp[(i, j)]
+
+        return spaces_to_comp
+
     def voronoi_boi(self, state):
         board_partitions = [0 for i in range(3)]
+        spaces_to_comp = self.divide_empty_territory(state.board)
+        one_comp = spaces_to_comp[state.player_locs[0]]
+        two_comp = spaces_to_comp[state.player_locs[1]]
         for i in range(len(state.board)):
             for j in range(len(state.board[0])):
                 # Skip over permanent and temporary barriers
                 if state.board[i][j] == '#' or state.board[i][j] == 'x':
                     continue
 
-                # Calculate each player's distance from (i, j)
-                one_dist = abs(i - state.player_locs[0][0]) + abs(j - state.player_locs[0][1])
-                two_dist = abs(i - state.player_locs[1][0]) + abs(j - state.player_locs[1][1])
-                if one_dist > two_dist: # If player one is closer
-                    board_partitions[0] += 1
-                elif one_dist < two_dist: # If player two is closer
+                if spaces_to_comp[(i, j)] == one_comp:
+                    if spaces_to_comp[(i, j)] != two_comp:
+                        board_partitions[0] += 1
+                    else:
+                        # Calculate each player's distance from (i, j)
+                        one_dist = abs(i - state.player_locs[0][0]) + abs(j - state.player_locs[0][1])
+                        two_dist = abs(i - state.player_locs[1][0]) + abs(j - state.player_locs[1][1])
+                        if one_dist > two_dist: # If player one is closer
+                            board_partitions[0] += 1
+                        elif one_dist < two_dist: # If player two is closer
+                            board_partitions[1] += 1
+                        else: # If there's a tie
+                            board_partitions[2] += 1
+                elif spaces_to_comp[(i, j)] == two_comp:
                     board_partitions[1] += 1
-                else: # If there's a tie
-                    board_partitions[2] += 1
+
+        if not one_comp == two_comp:
+            if board_partitions[0] > board_partitions[1]:
+                board_partitions[0] *= 3
+            elif board_partitions[0] < board_partitions[1]:
+                board_partitions[1] *= 3
+
         return board_partitions
 
     def alpha_beta_cutoff(self, asp):
@@ -42,7 +79,7 @@ class StudentBot:
             return self.ab_cutoff_helper(asp, state, None, None, 0, me)[0]
 
     def ab_cutoff_helper(self, asp, state, a, b, depth, me):
-        look_ahead_cutoff = 3
+        look_ahead_cutoff = 5
         if asp.is_terminal_state(state):
             # Return the value
             if state.player_locs[me] == None:
@@ -66,7 +103,8 @@ class StudentBot:
                 if depth == look_ahead_cutoff: # Note that this assumes that we're the ptm here
                     # Evaluate it with our function
                     board_partition = self.voronoi_boi(state)
-                    return (None, board_partition[me] - board_partition[1-me])
+                    #return (None, board_partition[me] - board_partition[1-me])
+                    return (None, board_partition[me])
                 else:
                     # Get the next state and find its value
                     new_state = asp.transition(state, action)
