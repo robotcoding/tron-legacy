@@ -10,7 +10,7 @@ import random, math
 
 class StudentBot:
     """ Write your student bot here"""
-    def distance(x0, y0, x1, y1):
+    def dist(self, x0, y0, x1, y1):
         return abs(x0 - x1) + abs(y0 - y1)
 
     def find_powerups(self, my_loc, board):
@@ -18,9 +18,10 @@ class StudentBot:
         locs = []
         for i in range(len(board) - 1):
             for j in range(len(board[0]) - 1):
-                if board[i][j] == "*" or board[i][j] == "@" or board[i][j] == "^" board[i][j] == "!":
-                    locs.append((i, j, dist(i, j, my_loc[0], my_loc[1]))) # append tuple of xy loc
-        return locs.sort(key=lambda x:x[2]) # based on this determine a direction to prioritize?
+                if board[i][j] == "*" or board[i][j] == "@" or board[i][j] == "^" or board[i][j] == "!":
+                    locs.append((i, j, self.dist(i, j, my_loc[0], my_loc[1]))) # append tuple of xy loc
+        locs.sort(key=lambda x:x[2])
+        return locs # based on this determine a direction to prioritize?
 
     def divide_empty_territory(self, board):
         spaces_to_comp = {}
@@ -43,61 +44,96 @@ class StudentBot:
 
         return spaces_to_comp
 
-    def voronoi_boi(self, state):
+    def voronoi_boi(self, state, components, one_loc, two_loc):
+        # Initialize variables
         board_partitions = [0 for i in range(3)]
-        spaces_to_comp = self.divide_empty_territory(state.board)
-        one_comp = spaces_to_comp[state.player_locs[0]]
-        two_comp = spaces_to_comp[state.player_locs[1]]
-        one_loc = state.player_locs[0]
-        two_loc = state.player_locs[1]
+        one_comp = components[one_loc]
+        two_comp = components[two_loc]
+
+        # Iterate through board
         for i in range(len(state.board)):
             for j in range(len(state.board[0])):
                 # Skip over permanent and temporary barriers
                 if state.board[i][j] == '#' or state.board[i][j] == 'x':
                     continue
 
-                if spaces_to_comp[(i, j)] == one_comp:
-                    if spaces_to_comp[(i, j)] != two_comp:
+                # If player one can access the space
+                if components[(i, j)] == one_comp:
+                    if components[(i, j)] != two_comp:
+                        # Give it to player one if player two can't
                         board_partitions[0] += 1
                     else:
                         # Calculate each player's distance from (i, j)
                         # one_dist = abs(i - state.player_locs[0][0]) + abs(j - state.player_locs[0][1])
                         # two_dist = abs(i - state.player_locs[1][0]) + abs(j - state.player_locs[1][1])
-                        one_dist = dist(i, j, state.player_locs[0][0], state.player_locs[0][1])
-                        two_dist = dist(i, j, state.player_locs[1][0], state.player_locs[1][1])
+                        one_dist = self.dist(i, j, one_loc[0], one_loc[1])
+                        two_dist = self.dist(i, j, two_loc[0], two_loc[1])
                         if one_dist > two_dist: # If player one is closer
                             board_partitions[0] += 1
                         elif one_dist < two_dist: # If player two is closer
                             board_partitions[1] += 1
                         else: # If there's a tie
                             board_partitions[2] += 1
-                elif spaces_to_comp[(i, j)] == two_comp:
+                # If only player two can access it
+                elif components[(i, j)] == two_comp:
                     board_partitions[1] += 1
-        '''
-        offsets = [(-1, 0), (1, 0), (0, 1), (0, -1)]
-        one_surrounds = [(one_loc[0]+offset[0], one_loc[1]+offset[1]) for offset in offsets]
-        walls_by_one = 0.0
-        for loc in one_surrounds:
-            if state.board[loc[0]][loc[1]] == '#' or state.board[loc[0]][loc[1]] == 'x':
-                walls_by_one += 1
-
-        two_surrounds = [(two_loc[0]+offset[0], two_loc[1]+offset[1]) for offset in offsets]
-        walls_by_two = 0.0
-        for loc in two_surrounds:
-            if state.board[loc[0]][loc[1]] == '#' or state.board[loc[0]][loc[1]] == 'x':
-                walls_by_two += 1
-
-
-        board_partitions[0] *= walls_by_one
-        board_partitions[1] *= walls_by_two
-        '''
-        if not one_comp == two_comp:
-            if board_partitions[0] > board_partitions[1]:
-                board_partitions[0] *= 3
-            elif board_partitions[0] < board_partitions[1]:
-                board_partitions[1] *= 3
 
         return board_partitions
+
+    def evaluate_state(self, state, action, me):
+        spaces_to_comp = self.divide_empty_territory(state.board)
+        my_loc = state.player_locs[me]
+        opp_loc = state.player_locs[1-me]
+        my_comp = spaces_to_comp[my_loc]
+        opp_comp = spaces_to_comp[opp_loc]
+
+        closest_spaces = self.voronoi_boi(state, spaces_to_comp, my_loc, opp_loc)
+        powerups = self.find_powerups(my_loc, state.board)
+
+        territory_value = 0
+        space_value = 0
+        wall_value = 0
+        powerup_value = 0
+        territory_weight = 40
+        space_weight = 50
+        wall_weight = 5 # Enlarge to compete with territory value
+        powerup_weight = 20
+
+        # The territory is a heuristic to make our bot try to claim space
+        territory_value = closest_spaces[0] - closest_spaces[1]
+
+        # Value of how many spaces are closest to us, not difference, again to claim space
+        space_value = closest_spaces[0]
+
+        # The wall value makes our bot hug the wall
+        offsets = [(-1, 0), (1, 0), (0, 1), (0, -1)]
+        my_surrounds = [(my_loc[0]+offset[0], my_loc[1]+offset[1]) for offset in offsets]
+        for loc in my_surrounds:
+            if state.board[loc[0]][loc[1]] == '#' or state.board[loc[0]][loc[1]] == 'x':
+                wall_value += 1
+
+        if not powerups == []: # If there are powerups
+            goal = powerups[0]
+            if goal[0] < my_loc[0] and action == 'U':
+                powerup_value = 5
+            elif goal[0] > my_loc[0] and action == 'D':
+                powerup_value = 5
+            elif goal[1] < my_loc[1] and action == 'L':
+                powerup_value = 5
+            elif goal[1] > my_loc[1] and action == 'R':
+                powerup_value = 5
+        else:
+            powerup_weight = 0
+
+        if not my_comp == opp_comp: # If we're in separate components
+            # We're in the end game and need to wall-hug
+            territory_weight = 1000
+            space_weight = 100
+            wall_weight = 5
+            powerup_weight = 10
+
+        return territory_value * territory_weight + space_value * space_weight + wall_value * wall_weight + powerup_value * powerup_weight
+
 
     def alpha_beta_cutoff(self, asp):
         # Initialize the variables
@@ -134,9 +170,9 @@ class StudentBot:
                 # If this state is as deep as we can go
                 if depth == look_ahead_cutoff: # Note that this assumes that we're the ptm here
                     # Evaluate it with our function
-                    board_partition = self.voronoi_boi(state)
+                    evalu = self.evaluate_state(state, action, me)
                     #return (None, board_partition[me] - board_partition[1-me])
-                    return (None, board_partition[me]) # where is the direction of choice passed back?
+                    return (None, evalu) # where is the direction of choice passed back?
                 else:
                     # Get the next state and find its value
                     new_state = asp.transition(state, action)
@@ -182,6 +218,7 @@ class StudentBot:
         To get started, you can get the current
         state by calling asp.get_start_state()
         """
+
         return self.alpha_beta_cutoff(asp)
         '''
         state = asp.get_start_state()
