@@ -37,6 +37,8 @@ class StudentBot:
         spaces_to_comp = self.divide_empty_territory(state.board)
         one_comp = spaces_to_comp[state.player_locs[0]]
         two_comp = spaces_to_comp[state.player_locs[1]]
+        one_loc = state.player_locs[0]
+        two_loc = state.player_locs[1]
         for i in range(len(state.board)):
             for j in range(len(state.board[0])):
                 # Skip over permanent and temporary barriers
@@ -58,7 +60,24 @@ class StudentBot:
                             board_partitions[2] += 1
                 elif spaces_to_comp[(i, j)] == two_comp:
                     board_partitions[1] += 1
+        '''
+        offsets = [(-1, 0), (1, 0), (0, 1), (0, -1)]
+        one_surrounds = [(one_loc[0]+offset[0], one_loc[1]+offset[1]) for offset in offsets]
+        walls_by_one = 0.0
+        for loc in one_surrounds:
+            if state.board[loc[0]][loc[1]] == '#' or state.board[loc[0]][loc[1]] == 'x':
+                walls_by_one += 1
 
+        two_surrounds = [(two_loc[0]+offset[0], two_loc[1]+offset[1]) for offset in offsets]
+        walls_by_two = 0.0
+        for loc in two_surrounds:
+            if state.board[loc[0]][loc[1]] == '#' or state.board[loc[0]][loc[1]] == 'x':
+                walls_by_two += 1
+
+
+        board_partitions[0] *= walls_by_one
+        board_partitions[1] *= walls_by_two
+        '''
         if not one_comp == two_comp:
             if board_partitions[0] > board_partitions[1]:
                 board_partitions[0] *= 3
