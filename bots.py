@@ -10,6 +10,17 @@ import random, math
 
 class StudentBot:
     """ Write your student bot here"""
+    def distance(x0, y0, x1, y1):
+        return abs(x0 - x1) + abs(y0 - y1)
+
+    def find_powerups(self, my_loc, board):
+        # return list of powerup coordinates and distance from my_loc (?)
+        locs = []
+        for i in range(len(board) - 1):
+            for j in range(len(board[0]) - 1):
+                if board[i][j] == "*" or board[i][j] == "@" or board[i][j] == "^" board[i][j] == "!":
+                    locs.append((i, j, dist(i, j, my_loc[0], my_loc[1]))) # append tuple of xy loc
+        return locs.sort(key=lambda x:x[2]) # based on this determine a direction to prioritize?
 
     def divide_empty_territory(self, board):
         spaces_to_comp = {}
@@ -50,8 +61,10 @@ class StudentBot:
                         board_partitions[0] += 1
                     else:
                         # Calculate each player's distance from (i, j)
-                        one_dist = abs(i - state.player_locs[0][0]) + abs(j - state.player_locs[0][1])
-                        two_dist = abs(i - state.player_locs[1][0]) + abs(j - state.player_locs[1][1])
+                        # one_dist = abs(i - state.player_locs[0][0]) + abs(j - state.player_locs[0][1])
+                        # two_dist = abs(i - state.player_locs[1][0]) + abs(j - state.player_locs[1][1])
+                        one_dist = dist(i, j, state.player_locs[0][0], state.player_locs[0][1])
+                        two_dist = dist(i, j, state.player_locs[1][0], state.player_locs[1][1])
                         if one_dist > two_dist: # If player one is closer
                             board_partitions[0] += 1
                         elif one_dist < two_dist: # If player two is closer
@@ -123,7 +136,7 @@ class StudentBot:
                     # Evaluate it with our function
                     board_partition = self.voronoi_boi(state)
                     #return (None, board_partition[me] - board_partition[1-me])
-                    return (None, board_partition[me])
+                    return (None, board_partition[me]) # where is the direction of choice passed back?
                 else:
                     # Get the next state and find its value
                     new_state = asp.transition(state, action)
