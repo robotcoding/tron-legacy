@@ -10,6 +10,11 @@ import random, math
 
 class StudentBot:
     """ Write your student bot here"""
+
+    def __init__(self):
+        self.next_to_powerup = False
+        self.dir_to_powerup = ''
+
     def dist(self, x0, y0, x1, y1):
         return abs(x0 - x1) + abs(y0 - y1)
 
@@ -23,6 +28,15 @@ class StudentBot:
         locs.sort(key=lambda x:x[2])
         return locs # based on this determine a direction to prioritize?
 
+    def get_wall_val(self, state, loc):
+        wall_value = 0
+        offsets = [(-1, 0), (1, 0), (0, 1), (0, -1)]
+        my_surrounds = [(loc[0]+offset[0], loc[1]+offset[1]) for offset in offsets]
+        for l in my_surrounds:
+            if state.board[l[0]][l[1]] == '#' or state.board[l[0]][l[1]] == 'x':
+                wall_value += 1
+        return wall_value
+
     def divide_empty_territory(self, board):
         spaces_to_comp = {}
         comps = -1
@@ -32,8 +46,11 @@ class StudentBot:
                 if board[i][j] == '#' or board[i][j] == 'x':
                     continue
 
+                if (i,j+1) in spaces_to_comp.keys():
+                    spaces_to_comp[(i, j)] = spaces_to_comp[(i, j+1)]
+
                 if not (i, j) in spaces_to_comp.keys():
-                    comps +=1
+                    comps += 1
                     spaces_to_comp[(i, j)] = comps
 
                 if not (board[i+1][j] == '#' or board[i+1][j] == 'x'):
@@ -51,32 +68,33 @@ class StudentBot:
         two_comp = components[two_loc]
 
         # Iterate through board
-        for i in range(len(state.board)):
-            for j in range(len(state.board[0])):
+        for i in range(1, len(state.board)):
+            for j in range(1, len(state.board[0])):
                 # Skip over permanent and temporary barriers
                 if state.board[i][j] == '#' or state.board[i][j] == 'x':
                     continue
+
+                # Extra count that helps it wall follow
+                open_space = self.get_wall_val(state, (i, j))
 
                 # If player one can access the space
                 if components[(i, j)] == one_comp:
                     if components[(i, j)] != two_comp:
                         # Give it to player one if player two can't
-                        board_partitions[0] += 1
+                        board_partitions[0] += 1 + open_space
                     else:
                         # Calculate each player's distance from (i, j)
-                        # one_dist = abs(i - state.player_locs[0][0]) + abs(j - state.player_locs[0][1])
-                        # two_dist = abs(i - state.player_locs[1][0]) + abs(j - state.player_locs[1][1])
                         one_dist = self.dist(i, j, one_loc[0], one_loc[1])
                         two_dist = self.dist(i, j, two_loc[0], two_loc[1])
-                        if one_dist > two_dist: # If player one is closer
-                            board_partitions[0] += 1
-                        elif one_dist < two_dist: # If player two is closer
-                            board_partitions[1] += 1
+                        if one_dist < two_dist: # If player one is closer
+                            board_partitions[0] += 1 + open_space
+                        elif one_dist > two_dist: # If player two is closer
+                            board_partitions[1] += 1 + open_space
                         else: # If there's a tie
-                            board_partitions[2] += 1
+                            board_partitions[2] += 1 + open_space
                 # If only player two can access it
                 elif components[(i, j)] == two_comp:
-                    board_partitions[1] += 1
+                    board_partitions[1] += 1 + open_space
 
         return board_partitions
 
@@ -99,29 +117,47 @@ class StudentBot:
         wall_weight = 5 # Enlarge to compete with territory value
         powerup_weight = 20
 
+        #Prior was territory: 40, space: 50, wall: 5, powerup all at 20
+
         # The territory is a heuristic to make our bot try to claim space
         territory_value = closest_spaces[0] - closest_spaces[1]
 
         # Value of how many spaces are closest to us, not difference, again to claim space
         space_value = closest_spaces[0]
 
-        # The wall value makes our bot hug the wall
-        offsets = [(-1, 0), (1, 0), (0, 1), (0, -1)]
-        my_surrounds = [(my_loc[0]+offset[0], my_loc[1]+offset[1]) for offset in offsets]
-        for loc in my_surrounds:
-            if state.board[loc[0]][loc[1]] == '#' or state.board[loc[0]][loc[1]] == 'x':
-                wall_value += 1
+        wall_value = self.get_wall_val(state, my_loc)
 
+        ### STILL HAVE NO CLUE HOW TO MOTIVATE IT TO TAKE POWERUPS, THIS DOESN'T WORK ###
+        ### DOES IT MATTER THOUGH IF IT WINS? ###
+        '''
+        if self.next_to_powerup and self.dir_to_powerup == action:
+            powerup_value = 30
+
+        self.next_to_powerup = False
+        self.dir_to_powerup = ''
+        '''
         if not powerups == []: # If there are powerups
             goal = powerups[0]
             if goal[0] < my_loc[0] and action == 'U':
                 powerup_value = 5
+                #if goal[2] == 1:
+                    #self.next_to_powerup = True
+                    #self.dir_to_powerup = 'U'
             elif goal[0] > my_loc[0] and action == 'D':
                 powerup_value = 5
+                #if goal[2] == 1:
+                    #self.next_to_powerup = True
+                    #self.dir_to_powerup = 'D'
             elif goal[1] < my_loc[1] and action == 'L':
                 powerup_value = 5
+                #if goal[2] == 1:
+                    #self.next_to_powerup = True
+                    #self.dir_to_powerup = 'L'
             elif goal[1] > my_loc[1] and action == 'R':
                 powerup_value = 5
+                #if goal[2] == 1:
+                    #self.next_to_powerup = True
+                    #self.dir_to_powerup = 'R'
         else:
             powerup_weight = 0
 
@@ -139,6 +175,8 @@ class StudentBot:
         # Initialize the variables
         state = asp.get_start_state()
         me = state.player_to_move()
+        spaces_to_comp = self.divide_empty_territory(state.board)
+        test = self.voronoi_boi(state, spaces_to_comp, state.player_locs[state.player_to_move()], state.player_locs[1-state.player_to_move()])
         # No action can be taken from a terminal state
         if asp.is_terminal_state(state):
             return None
@@ -182,6 +220,7 @@ class StudentBot:
                         # It is the best action
                         best = (action, value[1])
                         initialized = True
+
                     if ptm == me:
                         # Maximize and adjust alpha
                         if value[1] > best[1]:
@@ -207,6 +246,7 @@ class StudentBot:
                     # Prune the tree
                     if (not a == None) and (not b == None) and a >= b:
                         break
+
 
             return best
 
