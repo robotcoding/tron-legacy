@@ -75,6 +75,7 @@ class StudentBot:
                     continue
 
                 # Extra count that helps it wall follow
+                # Basically values us having open space without walls in middle
                 open_space = self.get_wall_val(state, (i, j))
 
                 # If player one can access the space
@@ -114,10 +115,8 @@ class StudentBot:
         powerup_value = 0
         territory_weight = 40
         space_weight = 50
-        wall_weight = 5 # Enlarge to compete with territory value
+        wall_weight = 5
         powerup_weight = 20
-
-        #Prior was territory: 40, space: 50, wall: 5, powerup all at 20
 
         # The territory is a heuristic to make our bot try to claim space
         territory_value = closest_spaces[0] - closest_spaces[1]
@@ -125,6 +124,7 @@ class StudentBot:
         # Value of how many spaces are closest to us, not difference, again to claim space
         space_value = closest_spaces[0]
 
+        # How many spaces around this position are walls, to hug walls
         wall_value = self.get_wall_val(state, my_loc)
 
         ### STILL HAVE NO CLUE HOW TO MOTIVATE IT TO TAKE POWERUPS, THIS DOESN'T WORK ###
@@ -136,6 +136,7 @@ class StudentBot:
         self.next_to_powerup = False
         self.dir_to_powerup = ''
         '''
+        # Motivate us to move in the direction of powerups
         if not powerups == []: # If there are powerups
             goal = powerups[0]
             if goal[0] < my_loc[0] and action == 'U':
@@ -175,8 +176,6 @@ class StudentBot:
         # Initialize the variables
         state = asp.get_start_state()
         me = state.player_to_move()
-        spaces_to_comp = self.divide_empty_territory(state.board)
-        test = self.voronoi_boi(state, spaces_to_comp, state.player_locs[state.player_to_move()], state.player_locs[1-state.player_to_move()])
         # No action can be taken from a terminal state
         if asp.is_terminal_state(state):
             return None
