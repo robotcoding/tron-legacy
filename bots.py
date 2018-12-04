@@ -124,6 +124,7 @@ class StudentBot:
     # calculates a value based on weighing benefits of gaining territory,
     # getting powerups, hugging walls
     # returns an integer
+
     def evaluate_state(self, last_state, state, action, me):
         spaces_to_comp = self.divide_empty_territory(state.board)
         my_loc = state.player_locs[me]
