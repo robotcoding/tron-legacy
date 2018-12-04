@@ -90,7 +90,9 @@ class StudentBot:
 
                 # Extra count that helps it wall follow
                 # Basically values us having open space without walls in middle
-                open_space = self.get_wall_val(state, (i, j))
+                open_space = 0
+                if one_comp == two_comp:
+                    open_space = self.get_wall_val(state, (i, j))
 
                 # If player one can access the space
                 if components[(i, j)] == one_comp:
@@ -184,8 +186,7 @@ class StudentBot:
             # We're in the end game and need to wall-hug
             territory_weight = 1000
             space_weight = 100
-            #wall_weight = 5
-            wall_weight = 20
+            wall_weight = 5
             powerup_weight = 10
 
         return territory_value * territory_weight + space_value * space_weight + wall_value * wall_weight + powerup_value * powerup_weight
