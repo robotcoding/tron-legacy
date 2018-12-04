@@ -141,7 +141,7 @@ class StudentBot:
         powerup_value = 0
         territory_weight = 40
         space_weight = 50
-        wall_weight = 5
+        wall_weight = 20
         powerup_weight = 20
 
         # The territory is a heuristic to make our bot try to claim space
@@ -196,7 +196,7 @@ class StudentBot:
             # We're in the end game and need to wall-hug
             territory_weight = 1000
             space_weight = 100
-            wall_weight = 5
+            wall_weight = 30
             powerup_weight = 10
 
         return territory_value * territory_weight + space_value * space_weight + wall_value * wall_weight + powerup_value * powerup_weight
