@@ -4,6 +4,7 @@ import numpy as np
 from tronproblem import *
 from trontypes import CellType, PowerupType
 import random, math
+import copy
 
 # Throughout this file, ASP means adversarial search problem.
 
@@ -14,6 +15,12 @@ class StudentBot:
     def __init__(self):
         self.next_to_powerup = False
         self.dir_to_powerup = ''
+
+    def is_art_point(self, my_loc, board, comps):
+        board_copy = copy.deepcopy(board)
+        board_copy[my_loc[0]][my_loc[1]] = "x"
+        divided = self.divide_empty_territory(board_copy)
+        return divided[1] > comps
 
     def dist(self, x0, y0, x1, y1):
         return abs(x0 - x1) + abs(y0 - y1)
@@ -50,8 +57,8 @@ class StudentBot:
 
     # based on a board, determines which "component" each cell belongs to, where
     # a component is defined as a space which is entirely enclosed by barriers.
-    # returns a dictionary mapping each cell that does not contain a barrier to
-    # some component index
+    # returns a tuple of: dictionary mapping each cell that does not contain a barrier to
+    # some component index, and the # of components in that dictionary
     def divide_empty_territory(self, board):
         spaces_to_comp = {}
         comps = -1
@@ -74,7 +81,7 @@ class StudentBot:
                 if not (board[i][j+1] == '#' or board[i][j+1] == 'x'):
                     spaces_to_comp[(i, j+1)] = spaces_to_comp[(i, j)]
 
-        return spaces_to_comp
+        return (spaces_to_comp, comps)
 
     # given a state, a components dictionary, location of player 1 and location
     # of player 2, calculates board "partitions" dividing board into three
@@ -126,7 +133,9 @@ class StudentBot:
     # returns an integer
 
     def evaluate_state(self, last_state, state, action, me):
-        spaces_to_comp = self.divide_empty_territory(state.board)
+        comp_res = self.divide_empty_territory(state.board)
+        spaces_to_comp = comp_res[0]
+        comps = comp_res[1]
         my_loc = state.player_locs[me]
         opp_loc = state.player_locs[1-me]
         my_comp = spaces_to_comp[my_loc]
@@ -143,6 +152,7 @@ class StudentBot:
         space_weight = 50
         wall_weight = 20
         powerup_weight = 20
+        articulation_weight = 1
 
         # The territory is a heuristic to make our bot try to claim space
         territory_value = closest_spaces[0] - closest_spaces[1]
@@ -198,8 +208,9 @@ class StudentBot:
             space_weight = 100
             wall_weight = 30
             powerup_weight = 10
+            articulation_weight = 0.25
 
-        return territory_value * territory_weight + space_value * space_weight + wall_value * wall_weight + powerup_value * powerup_weight
+        return articulation_weight * (territory_value * territory_weight + space_value * space_weight + wall_value * wall_weight + powerup_value * powerup_weight)
 
     # returns best action to take
     def alpha_beta_cutoff(self, asp):
