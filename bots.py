@@ -151,7 +151,7 @@ class StudentBot:
         territory_weight = 40
         space_weight = 50
         wall_weight = 20
-        powerup_weight = 20
+        powerup_weight = 10
         articulation_weight = 1
 
         # The territory is a heuristic to make our bot try to claim space
@@ -207,8 +207,9 @@ class StudentBot:
             territory_weight = 1000
             space_weight = 100
             wall_weight = 30
-            powerup_weight = 10
-            articulation_weight = 0.25
+            powerup_weight = 5
+            if self.is_art_point(my_loc, state.board, comps):
+                articulation_weight = 0.25
 
         return articulation_weight * (territory_value * territory_weight + space_value * space_weight + wall_value * wall_weight + powerup_value * powerup_weight)
 
