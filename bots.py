@@ -18,8 +18,11 @@ class StudentBot:
     def dist(self, x0, y0, x1, y1):
         return abs(x0 - x1) + abs(y0 - y1)
 
+    # based on a board and a loc (xy tuple), finds powerups closest to loc
+    # returns list of powerup coordinates and their respective distance from my_loc
+    #       sorted by distance
+    #       [(x0,y0,dist0), (x1, y1, d1), ...]
     def find_powerups(self, my_loc, board):
-        # return list of powerup coordinates and distance from my_loc (?)
         locs = []
         for i in range(len(board) - 1):
             for j in range(len(board[0]) - 1):
@@ -28,6 +31,9 @@ class StudentBot:
         locs.sort(key=lambda x:x[2])
         return locs # based on this determine a direction to prioritize?
 
+    # based on a state and a player loc in that state, finds how many of their 4
+    # surrounding cells (U, D, L, R) correspond to barriers
+    # returns number of such walls as a value b/w 0 and 4
     def get_wall_val(self, state, loc):
         wall_value = 0
         offsets = [(-1, 0), (1, 0), (0, 1), (0, -1)]
@@ -37,6 +43,10 @@ class StudentBot:
                 wall_value += 1
         return wall_value
 
+    # based on a board, determines which "component" each cell belongs to, where
+    # a component is defined as a space which is entirely enclosed by barriers.
+    # returns a dictionary mapping each cell that does not contain a barrier to
+    # some component index
     def divide_empty_territory(self, board):
         spaces_to_comp = {}
         comps = -1
@@ -61,6 +71,10 @@ class StudentBot:
 
         return spaces_to_comp
 
+    # given a state, a components dictionary, location of player 1 and location
+    # of player 2, calculates board "partitions" dividing board into three
+    # regions: ones closer to player1, ones closer to player 2, and those
+    # equidistant from both players
     def voronoi_boi(self, state, components, one_loc, two_loc):
         # Initialize variables
         board_partitions = [0 for i in range(3)]
@@ -99,6 +113,10 @@ class StudentBot:
 
         return board_partitions
 
+    # given a state and an action to be taken by player "me":
+    # calculates a value based on weighing benefits of gaining territory,
+    # getting powerups, hugging walls
+    # returns an integer
     def evaluate_state(self, state, action, me):
         spaces_to_comp = self.divide_empty_territory(state.board)
         my_loc = state.player_locs[me]
@@ -166,12 +184,13 @@ class StudentBot:
             # We're in the end game and need to wall-hug
             territory_weight = 1000
             space_weight = 100
-            wall_weight = 5
+            #wall_weight = 5
+            wall_weight = 20
             powerup_weight = 10
 
         return territory_value * territory_weight + space_value * space_weight + wall_value * wall_weight + powerup_value * powerup_weight
 
-
+    # returns best action to take
     def alpha_beta_cutoff(self, asp):
         # Initialize the variables
         state = asp.get_start_state()
@@ -183,6 +202,7 @@ class StudentBot:
             # Use None in place of positive and negative infinity
             return self.ab_cutoff_helper(asp, state, None, None, 0, me)[0]
 
+    # returns tuple of best action to take and its value
     def ab_cutoff_helper(self, asp, state, a, b, depth, me):
         look_ahead_cutoff = 5
         if asp.is_terminal_state(state):
