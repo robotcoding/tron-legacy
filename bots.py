@@ -18,8 +18,16 @@ class StudentBot:
     def dist(self, x0, y0, x1, y1):
         return abs(x0 - x1) + abs(y0 - y1)
 
+    def has_the_power(self, board, i, j):
+        had = board[i][j] == "*" or board[i][j] == "@" or board[i][j] == "^" or board[i][j] == "!"
+        #print(had)
+        return had
+
+    # based on a board and a loc (xy tuple), finds powerups closest to loc
+    # returns list of powerup coordinates and their respective distance from my_loc
+    #       sorted by distance
+    #       [(x0,y0,dist0), (x1, y1, d1), ...]
     def find_powerups(self, my_loc, board):
-        # return list of powerup coordinates and distance from my_loc (?)
         locs = []
         for i in range(len(board) - 1):
             for j in range(len(board[0]) - 1):
@@ -28,6 +36,9 @@ class StudentBot:
         locs.sort(key=lambda x:x[2])
         return locs # based on this determine a direction to prioritize?
 
+    # based on a state and a player loc in that state, finds how many of their 4
+    # surrounding cells (U, D, L, R) correspond to barriers
+    # returns number of such walls as a value b/w 0 and 4
     def get_wall_val(self, state, loc):
         wall_value = 0
         offsets = [(-1, 0), (1, 0), (0, 1), (0, -1)]
@@ -37,6 +48,10 @@ class StudentBot:
                 wall_value += 1
         return wall_value
 
+    # based on a board, determines which "component" each cell belongs to, where
+    # a component is defined as a space which is entirely enclosed by barriers.
+    # returns a dictionary mapping each cell that does not contain a barrier to
+    # some component index
     def divide_empty_territory(self, board):
         spaces_to_comp = {}
         comps = -1
@@ -61,6 +76,10 @@ class StudentBot:
 
         return spaces_to_comp
 
+    # given a state, a components dictionary, location of player 1 and location
+    # of player 2, calculates board "partitions" dividing board into three
+    # regions: ones closer to player1, ones closer to player 2, and those
+    # equidistant from both players
     def voronoi_boi(self, state, components, one_loc, two_loc):
         # Initialize variables
         board_partitions = [0 for i in range(3)]
@@ -76,7 +95,9 @@ class StudentBot:
 
                 # Extra count that helps it wall follow
                 # Basically values us having open space without walls in middle
-                open_space = self.get_wall_val(state, (i, j))
+                open_space = 0
+                if one_comp == two_comp:
+                    open_space = self.get_wall_val(state, (i, j))
 
                 # If player one can access the space
                 if components[(i, j)] == one_comp:
@@ -99,7 +120,11 @@ class StudentBot:
 
         return board_partitions
 
-    def evaluate_state(self, state, action, me):
+    # given a state and an action to be taken by player "me":
+    # calculates a value based on weighing benefits of gaining territory,
+    # getting powerups, hugging walls
+    # returns an integer
+    def evaluate_state(self, last_state, state, action, me):
         spaces_to_comp = self.divide_empty_territory(state.board)
         my_loc = state.player_locs[me]
         opp_loc = state.player_locs[1-me]
@@ -129,6 +154,10 @@ class StudentBot:
 
         ### STILL HAVE NO CLUE HOW TO MOTIVATE IT TO TAKE POWERUPS, THIS DOESN'T WORK ###
         ### DOES IT MATTER THOUGH IF IT WINS? ###
+        if not last_state == None:
+            if self.has_the_power(last_state.board, my_loc[0], my_loc[1]):
+                powerup_value = 50
+
         '''
         if self.next_to_powerup and self.dir_to_powerup == action:
             powerup_value = 30
@@ -171,7 +200,7 @@ class StudentBot:
 
         return territory_value * territory_weight + space_value * space_weight + wall_value * wall_weight + powerup_value * powerup_weight
 
-
+    # returns best action to take
     def alpha_beta_cutoff(self, asp):
         # Initialize the variables
         state = asp.get_start_state()
@@ -181,9 +210,10 @@ class StudentBot:
             return None
         else:
             # Use None in place of positive and negative infinity
-            return self.ab_cutoff_helper(asp, state, None, None, 0, me)[0]
+            return self.ab_cutoff_helper(asp, None, state, None, None, 0, me)[0]
 
-    def ab_cutoff_helper(self, asp, state, a, b, depth, me):
+    # returns tuple of best action to take and its value
+    def ab_cutoff_helper(self, asp, last_state, state, a, b, depth, me):
         look_ahead_cutoff = 5
         if asp.is_terminal_state(state):
             # Return the value
@@ -207,13 +237,13 @@ class StudentBot:
                 # If this state is as deep as we can go
                 if depth == look_ahead_cutoff: # Note that this assumes that we're the ptm here
                     # Evaluate it with our function
-                    evalu = self.evaluate_state(state, action, me)
+                    evalu = self.evaluate_state(last_state, state, action, me)
                     #return (None, board_partition[me] - board_partition[1-me])
                     return (None, evalu) # where is the direction of choice passed back?
                 else:
                     # Get the next state and find its value
                     new_state = asp.transition(state, action)
-                    value = self.ab_cutoff_helper(asp, new_state, a, b, depth + 1, me)
+                    value = self.ab_cutoff_helper(asp, state, new_state, a, b, depth + 1, me)
                     # If this is our first action
                     if not initialized:
                         # It is the best action
