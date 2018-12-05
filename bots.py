@@ -213,6 +213,21 @@ class StudentBot:
 
         return articulation_weight * (territory_value * territory_weight + space_value * space_weight + wall_value * wall_weight + powerup_value * powerup_weight)
 
+    def is_unsafe_but_ok(self, state, loc, player):
+        board = state.board
+        if state.player_has_armor(player):
+            # yee
+            wall_val = self.get_wall_val(board, state, loc)
+            if wall_val < 3:
+                if wall_val == 2:
+                    opp_char = str(1-player + 1)
+                    offsets = [(-1, 0), (1, 0), (0, 1), (0, -1)]
+                    my_surrounds = [(loc[0]+offset[0], loc[1]+offset[1]) for offset in offsets]
+                    for l in my_surrounds:
+                        if state.board[l[0]][l[1]] == opp_char:
+                            return False
+                return True
+        return False
     # returns best action to take
     def alpha_beta_cutoff(self, asp):
         # Initialize the variables
@@ -239,7 +254,12 @@ class StudentBot:
             locs = state.player_locs
             ptm = state.ptm
             loc = locs[ptm]
+            safe_actions_set = asp.get_safe_actions(state.board, loc)
+            all_actions_set = asp.get_available_actions(state.board, loc)
+            only_unsafe = all_actions_set.difference(safe_actions_set)
             actions = list(asp.get_safe_actions(state.board, loc))
+            unsafe_but_safe = [x for x in only_unsafe if self.is_unsafe_but_ok(state.transition(state, x), loc, ptm)]
+            actions += unsafe_but_safe
             if len(actions) == 0:
                 if ptm == me:
                     return ('U', -99999)
