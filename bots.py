@@ -7,7 +7,7 @@ import random, math
 import copy
 
 # Throughout this file, ASP means adversarial search problem.
-
+ART_WT = 0.25
 
 class StudentBot:
     """ Write your student bot here"""
@@ -102,9 +102,9 @@ class StudentBot:
 
                 # Extra count that helps it wall follow
                 # Basically values us having open space without walls in middle
-                open_space = 0
-                if one_comp == two_comp:
-                    open_space = self.get_wall_val(state, (i, j))
+                open_space = 0 #
+                #if one_comp == two_comp:
+                open_space = self.get_wall_val(state, (i, j))
 
                 # If player one can access the space
                 if components[(i, j)] == one_comp:
@@ -209,13 +209,13 @@ class StudentBot:
             wall_weight = 30
             powerup_weight = 5
             if self.is_art_point(my_loc, state.board, comps):
-                articulation_weight = 0.42
+                articulation_weight = ART_WT
 
         return articulation_weight * (territory_value * territory_weight + space_value * space_weight + wall_value * wall_weight + powerup_value * powerup_weight)
 
     def is_unsafe_but_ok(self, state, loc, player):
         board = state.board
-        if state.board[loc[0]][loc[1]] == 'x' and state.player_has_armor(player):
+        if state.player_has_armor(player):
             # yee
             wall_val = self.get_wall_val(state, loc)
             if wall_val < 3:
@@ -228,7 +228,6 @@ class StudentBot:
                             return False
                 return True
         return False
-
     # returns best action to take
     def alpha_beta_cutoff(self, asp):
         # Initialize the variables
@@ -259,8 +258,9 @@ class StudentBot:
             all_actions_set = asp.get_available_actions(state)
             only_unsafe = all_actions_set.difference(safe_actions_set)
             actions = list(asp.get_safe_actions(state.board, loc))
-            #unsafe_but_safe = [x for x in only_unsafe if self.is_unsafe_but_ok(state, TronProblem.move(loc, x), ptm)]
-            #actions += unsafe_but_safe
+            unsafe_but_safe = [x for x in only_unsafe if self.is_unsafe_but_ok(state, loc, ptm)]
+            #unsafe_but_safe = [x for x in only_unsafe if self.is_unsafe_but_ok(state.transition(state, x), loc, ptm)]
+            actions += unsafe_but_safe
             if len(actions) == 0:
                 if ptm == me:
                     return ('U', -99999)
