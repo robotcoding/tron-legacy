@@ -5,7 +5,7 @@ from tronproblem import *
 from trontypes import CellType, PowerupType
 import random, math
 import copy
-import queue
+import heapq
 
 # Throughout this file, ASP means adversarial search problem.
 ART_WT = 0.25
@@ -18,48 +18,72 @@ class StudentBot:
         self.dir_to_powerup = ''
         self.BOT_NAME = "goddard"
 
-    def get_neighbors(self, board, loc):
-        r = []
-        x = loc[0]
-        y = loc[1]
-
-        up = (x, y+1)
-        down = (x, y-1)
-        right = (x+1, y)
-        left = (x-1, y)
-
-        possible = [up, down, right, left]
-        for x0, y0 in possible:
-            if x0 >= 0 and x0 < len(board[0]) and y0 >= 0 and y0 < len(board):
-                r.append((x0, y0))
-
-        return r
-
-    # takes board and loc xy tuple, returns length of shortest path
-    def dijkstra(self, board, src, dst):
-        q = []
-        dist = copy.deepcopy(board)
-        prev = copy.deepcopy(board)
-        for i in range(len(board)):
-            for j in range(len(board[0])):
-                dist[i][j] = float("inf")
-                prev[i][j] = None
-                q.append((i,j)) # add all xy tuples to queue
-        dist[src[0]][src[1]] = 0
-        while not len(q) == 0:
-            # print(len(q))
-            u = min(q, key=lambda v:  dist[v[0]][v[1]])
-            q.remove(u)
-            if u == dst:
-                break
-            neighbors = self.get_neighbors(board, src)
-
-            for v in neighbors:
-                alt_dist = dist[u[0]][u[1]] + 1
-                if alt_dist < dist[v[0]][v[1]]:
-                    dist[v[0]][v[1]] = alt_dist
-                    prev[v[0]][v[1]] = u
-        return dist[dst[0]][dst[1]]
+    # def get_neighbors(self, board, loc):
+    #     r = []
+    #     x = loc[0]
+    #     y = loc[1]
+    #
+    #     up = (x, y+1)
+    #     down = (x, y-1)
+    #     right = (x+1, y)
+    #     left = (x-1, y)
+    #
+    #     possible = [up, down, right, left]
+    #     for x0, y0 in possible:
+    #         if x0 >= 0 and x0 < len(board[0]) and y0 >= 0 and y0 < len(board):
+    #             r.append((x0, y0))
+    #
+    #     return r
+    #
+    # # takes board and loc xy tuple, returns length of shortest path
+    # def dijkstra(self, board, src, dst):
+    #     #q = []
+    #     q_src = []
+    #     q_dst = []
+    #     dist_src = copy.deepcopy(board)
+    #     dist_dst = copy.deepcopy(board)
+    #     #prev = copy.deepcopy(board)
+    #     for i in range(len(board)):
+    #         for j in range(len(board[0])):
+    #             val = float("inf")
+    #             dist[i][j] = val
+    #             #prev[i][j] = None
+    #             #q.append((i,j)) # add all xy tuples to queue
+    #             heapq.heappush(q, (val, (i, j)))
+    #             heapq.heappush(q, (val, (i, j)))
+    #     dist_src[src[0]][src[1]] = 0
+    #     dist_dst[dst[0]][dst[1]] = 0
+    #     while not len(q_src) == 0 and not len(q_dst) == 0:
+    #         if not len(q_src) == 0:
+    #             # print(len(q))
+    #             #u = min(q, key=lambda v:  dist[v[0]][v[1]])
+    #             u_dst, u_coor = heapq.heappop(q_src)
+    #             #q.remove(u)
+    #             if u_coor == ds or dist_dst[u_coor[0]][u_coor[1]] != float("inf")t:
+    #                 break # either it's an overlap or you're at beginning
+    #             neighbors = self.get_neighbors(board, src)
+    #
+    #             for v in neighbors:
+    #                 alt_dist = dist_src[u_coor[0]][u_coor[1]] + 1
+    #                 if alt_dist < dist_src[v[0]][v[1]]:
+    #                     dist_src[v[0]][v[1]] = alt_dist
+    #                     #prev[v[0]][v[1]] = u
+    #         if not len(q_dst) == 0:
+    #             # print(len(q))
+    #             #u = min(q, key=lambda v:  dist[v[0]][v[1]])
+    #             u_dst, u_coor = heapq.heappop(q_dst)
+    #             #q.remove(u)
+    #             if u_coor == dst or dist_src[u_coor[0]][u_coor[1]] != float("inf"):
+    #                 break
+    #             neighbors = self.get_neighbors(board, dst)
+    #
+    #             for v in neighbors:
+    #                 alt_dist = dist_dst[u_coor[0]][u_coor[1]] + 1
+    #                 if alt_dist < dist_dst[v[0]][v[1]]:
+    #                     dist_dst[v[0]][v[1]] = alt_dist
+    #                     #prev[v[0]][v[1]] = u
+    #     #return dist[dst[0]][dst[1]]
+    #     return dist_src[dst[0]][dst[1]]
 
     def is_art_point(self, my_loc, board, comps):
         board_copy = copy.deepcopy(board)
@@ -162,10 +186,10 @@ class StudentBot:
                         # two_path = self.dijkstra(board, two_loc)
                         # one_dist = len(one_path)
                         # two_dist = len(two_path)
-                        one_dist = self.dijkstra(state.board, one_loc, (i,j))
-                        two_dist = self.dijkstra(state.board, two_loc, (i,j))
-                        # one_dist = self.dist(i, j, one_loc[0], one_loc[1])
-                        # two_dist = self.dist(i, j, two_loc[0], two_loc[1])
+                        # one_dist = self.dijkstra(state.board, one_loc, (i,j))
+                        # two_dist = self.dijkstra(state.board, two_loc, (i,j))
+                        one_dist = self.dist(i, j, one_loc[0], one_loc[1])
+                        two_dist = self.dist(i, j, two_loc[0], two_loc[1])
                         if one_dist < two_dist: # If player one is closer
                             board_partitions[0] += 1 + open_space
                         elif one_dist > two_dist: # If player two is closer

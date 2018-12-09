@@ -8,6 +8,7 @@ import numpy as np
 
 
 def run_game(asp, bots, visualizer=None, delay=0.2, max_wait=0.3, colored=True):
+
     """
     Inputs:
         - asp: an adversarial search problem
