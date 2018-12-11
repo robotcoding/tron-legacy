@@ -16,8 +16,9 @@ class StudentBot:
     def __init__(self):
         self.next_to_powerup = False
         self.dir_to_powerup = ''
-        self.BOT_NAME = "goddard"
+        self.BOT_NAME = "goddard gal palz"
 
+    # ======== SCRAPPED DIJKSTRA CODE ===========
     # def get_neighbors(self, board, loc):
     #     r = []
     #     x = loc[0]
@@ -36,18 +37,17 @@ class StudentBot:
     #     return r
     #
     # # takes board and loc xy tuple, returns length of shortest path
+    # # uses bidirectional dijkstra path finding algorithm
+    # # scrapped due to extremely long runtime :(
     # def dijkstra(self, board, src, dst):
-    #     #q = []
     #     q_src = []
     #     q_dst = []
     #     dist_src = copy.deepcopy(board)
     #     dist_dst = copy.deepcopy(board)
-    #     #prev = copy.deepcopy(board)
     #     for i in range(len(board)):
     #         for j in range(len(board[0])):
     #             val = float("inf")
     #             dist[i][j] = val
-    #             #prev[i][j] = None
     #             #q.append((i,j)) # add all xy tuples to queue
     #             heapq.heappush(q, (val, (i, j)))
     #             heapq.heappush(q, (val, (i, j)))
@@ -55,10 +55,7 @@ class StudentBot:
     #     dist_dst[dst[0]][dst[1]] = 0
     #     while not len(q_src) == 0 and not len(q_dst) == 0:
     #         if not len(q_src) == 0:
-    #             # print(len(q))
-    #             #u = min(q, key=lambda v:  dist[v[0]][v[1]])
     #             u_dst, u_coor = heapq.heappop(q_src)
-    #             #q.remove(u)
     #             if u_coor == ds or dist_dst[u_coor[0]][u_coor[1]] != float("inf")t:
     #                 break # either it's an overlap or you're at beginning
     #             neighbors = self.get_neighbors(board, src)
@@ -67,12 +64,8 @@ class StudentBot:
     #                 alt_dist = dist_src[u_coor[0]][u_coor[1]] + 1
     #                 if alt_dist < dist_src[v[0]][v[1]]:
     #                     dist_src[v[0]][v[1]] = alt_dist
-    #                     #prev[v[0]][v[1]] = u
     #         if not len(q_dst) == 0:
-    #             # print(len(q))
-    #             #u = min(q, key=lambda v:  dist[v[0]][v[1]])
     #             u_dst, u_coor = heapq.heappop(q_dst)
-    #             #q.remove(u)
     #             if u_coor == dst or dist_src[u_coor[0]][u_coor[1]] != float("inf"):
     #                 break
     #             neighbors = self.get_neighbors(board, dst)
@@ -81,19 +74,21 @@ class StudentBot:
     #                 alt_dist = dist_dst[u_coor[0]][u_coor[1]] + 1
     #                 if alt_dist < dist_dst[v[0]][v[1]]:
     #                     dist_dst[v[0]][v[1]] = alt_dist
-    #                     #prev[v[0]][v[1]] = u
-    #     #return dist[dst[0]][dst[1]]
     #     return dist_src[dst[0]][dst[1]]
 
+    # returns whether or not the xy-coordinate at my_loc is an
+    # articulation point, given a board and components dictionary
     def is_art_point(self, my_loc, board, comps):
         board_copy = copy.deepcopy(board)
         board_copy[my_loc[0]][my_loc[1]] = "x"
         divided = self.divide_empty_territory(board_copy)
         return divided[1] > comps
 
+    # euclidean distance
     def dist(self, x0, y0, x1, y1):
         return abs(x0 - x1) + abs(y0 - y1)
 
+    # returns whether or not there is a powerup at i,j
     def has_the_power(self, board, i, j):
         had = board[i][j] == "*" or board[i][j] == "@" or board[i][j] == "^" or board[i][j] == "!"
         #print(had)
@@ -110,7 +105,7 @@ class StudentBot:
                 if board[i][j] == "*" or board[i][j] == "@" or board[i][j] == "^" or board[i][j] == "!":
                     locs.append((i, j, self.dist(i, j, my_loc[0], my_loc[1]))) # append tuple of xy loc
         locs.sort(key=lambda x:x[2])
-        return locs # based on this determine a direction to prioritize?
+        return locs # based on this determine a direction to prioritize
 
     # based on a state and a player loc in that state, finds how many of their 4
     # surrounding cells (U, D, L, R) correspond to barriers
@@ -182,10 +177,6 @@ class StudentBot:
                         board_partitions[0] += 1 + open_space
                     else:
                         # Calculate each player's distance from (i, j)
-                        # one_path = self.dijkstra(board, one_loc)
-                        # two_path = self.dijkstra(board, two_loc)
-                        # one_dist = len(one_path)
-                        # two_dist = len(two_path)
                         # one_dist = self.dijkstra(state.board, one_loc, (i,j))
                         # two_dist = self.dijkstra(state.board, two_loc, (i,j))
                         one_dist = self.dist(i, j, one_loc[0], one_loc[1])
@@ -204,9 +195,8 @@ class StudentBot:
 
     # given a state and an action to be taken by player "me":
     # calculates a value based on weighing benefits of gaining territory,
-    # getting powerups, hugging walls
+    # getting powerups, hugging walls, making new components
     # returns an integer
-
     def evaluate_state(self, last_state, state, action, me):
         comp_res = self.divide_empty_territory(state.board)
         spaces_to_comp = comp_res[0]
@@ -238,42 +228,21 @@ class StudentBot:
         # How many spaces around this position are walls, to hug walls
         wall_value = self.get_wall_val(state, my_loc)
 
-        ### STILL HAVE NO CLUE HOW TO MOTIVATE IT TO TAKE POWERUPS, THIS DOESN'T WORK ###
-        ### DOES IT MATTER THOUGH IF IT WINS? ###
         if not last_state == None:
             if self.has_the_power(last_state.board, my_loc[0], my_loc[1]):
                 powerup_value = 50
 
-        '''
-        if self.next_to_powerup and self.dir_to_powerup == action:
-            powerup_value = 30
-
-        self.next_to_powerup = False
-        self.dir_to_powerup = ''
-        '''
         # Motivate us to move in the direction of powerups
         if not powerups == []: # If there are powerups
             goal = powerups[0]
             if goal[0] < my_loc[0] and action == 'U':
                 powerup_value = 5
-                #if goal[2] == 1:
-                    #self.next_to_powerup = True
-                    #self.dir_to_powerup = 'U'
             elif goal[0] > my_loc[0] and action == 'D':
                 powerup_value = 5
-                #if goal[2] == 1:
-                    #self.next_to_powerup = True
-                    #self.dir_to_powerup = 'D'
             elif goal[1] < my_loc[1] and action == 'L':
                 powerup_value = 5
-                #if goal[2] == 1:
-                    #self.next_to_powerup = True
-                    #self.dir_to_powerup = 'L'
             elif goal[1] > my_loc[1] and action == 'R':
                 powerup_value = 5
-                #if goal[2] == 1:
-                    #self.next_to_powerup = True
-                    #self.dir_to_powerup = 'R'
         else:
             powerup_weight = 0
 
@@ -291,7 +260,6 @@ class StudentBot:
     def is_unsafe_but_ok(self, state, loc, player):
         board = state.board
         if state.player_has_armor(player):
-            # yee
             wall_val = self.get_wall_val(state, loc)
             if wall_val < 3:
                 if wall_val == 2:
@@ -303,6 +271,7 @@ class StudentBot:
                             return False
                 return True
         return False
+
     # returns best action to take
     def alpha_beta_cutoff(self, asp):
         # Initialize the variables
@@ -334,7 +303,6 @@ class StudentBot:
             only_unsafe = all_actions_set.difference(safe_actions_set)
             actions = list(asp.get_safe_actions(state.board, loc))
             unsafe_but_safe = [x for x in only_unsafe if self.is_unsafe_but_ok(state, loc, ptm)]
-            #unsafe_but_safe = [x for x in only_unsafe if self.is_unsafe_but_ok(state.transition(state, x), loc, ptm)]
             actions += unsafe_but_safe
             if len(actions) == 0:
                 if ptm == me:
@@ -398,23 +366,6 @@ class StudentBot:
         """
 
         return self.alpha_beta_cutoff(asp)
-        '''
-        state = asp.get_start_state()
-        locs = state.player_locs
-        ptm = state.ptm
-        loc = locs[ptm]
-        actions = list(asp.get_safe_actions(state.board, loc))
-        if len(actions) == 0:
-            return "U"
-        next_states = [asp.transition(state, a) for a in actions]
-        voronois = [self.voronoi_boi(s) for s in next_states]
-        dists = [voronois[i][ptm] for i in range(len(voronois))]
-        max_index = 0
-        for j in range(len(dists)):
-            if dists[j] > dists[max_index]:
-                max_index = j
-        return actions[max_index]
-        '''
 
     def cleanup(self):
         """
